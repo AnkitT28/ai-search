@@ -63,6 +63,12 @@ class ChatRepository {
                     botResponse = "Main thik hu tum batao tum kaise ho ? aur kya chal raha hai ?"
                 )
             }
+                "just asking" in lower -> {
+                    ChatMessage(
+                        isUser = false,
+                        botResponse = "Main thik hu tum batao tum kaise ho ? aur kya chal raha hai ?"
+                    )
+            }
             else -> {
                 ChatMessage(
                     isUser = false,
