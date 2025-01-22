@@ -12,6 +12,7 @@ fun TypewriterText(
     fullText: String,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    onAnimationComplete: (() -> Unit)? = null, // Callback for animation completion
     style: TextStyle = androidx.compose.material3.MaterialTheme.typography.bodyMedium
 ) {
     var displayedText by remember { mutableStateOf("") }
@@ -23,6 +24,7 @@ fun TypewriterText(
             displayedText += char
             delay(40) // Adjust speed as needed
         }
+        onAnimationComplete?.invoke() // Notify animation completion
     }
 
     // If onClick is provided, wrap Text in clickable
@@ -36,3 +38,4 @@ fun TypewriterText(
         Text(text = displayedText, modifier = modifier, style = style)
     }
 }
+

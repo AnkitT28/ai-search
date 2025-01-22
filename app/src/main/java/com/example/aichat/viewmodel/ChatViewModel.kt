@@ -1,6 +1,5 @@
 package com.example.aichat.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.aichat.model.ChatMessage
@@ -25,12 +24,8 @@ class ChatViewModel : ViewModel() {
         _isRecording.value = value
     }
 
-
     fun sendMessage(userMessage: String) {
-        // Print user question to Logcat
-        Log.d("AI_CHAT_LOG", "User question: $userMessage")
-
-        // 1) Add user message
+        // Add user message to the chat
         val userChat = ChatMessage(
             userMessage = userMessage,
             botResponse = "",
@@ -38,7 +33,7 @@ class ChatViewModel : ViewModel() {
         )
         _chatMessages.value += userChat
 
-        // 2) Show loading while we fetch a bot response
+        // Fetch bot response from the API
         viewModelScope.launch {
             _isLoading.value = true
             val botChat = chatRepository.getBotResponse(userMessage)

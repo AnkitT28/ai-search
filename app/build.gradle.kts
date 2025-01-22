@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
 }
 
 android {
@@ -28,11 +29,11 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "21"
     }
     buildFeatures {
         compose = true
@@ -53,16 +54,16 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.appcompat)
 
-    // Add LiveData dependency
-    implementation(libs.androidx.lifecycle.livedata) // For LiveData
+    // LiveData
+    implementation(libs.androidx.lifecycle.livedata)
 
-    // For LiveData with Compose
-    implementation("androidx.compose.runtime:runtime-livedata:1.4.3")
-    implementation("androidx.compose.material3:material3:1.0.0")
-    implementation("androidx.compose.material:material-icons-core:1.5.0")
-    implementation("androidx.compose.material:material-icons-extended:1.5.0")
+    // Compose with LiveData
+    implementation(libs.androidx.runtime.livedata)
+    implementation(libs.material3)
+    implementation(libs.androidx.material.icons.core)
+    implementation(libs.androidx.material.icons.extended)
 
-
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     // Testing dependencies
     testImplementation(libs.junit)
@@ -72,5 +73,8 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-}
 
+
+    implementation ("com.squareup.okhttp3:logging-interceptor:4.10.0")
+
+}

@@ -4,5 +4,5 @@ data class ChatMessage(
     val userMessage: String = "",
     val botResponse: String = "",
     val isUser: Boolean,
-    val actionLabel: String = "" // Optional: for clickable actions
+    val title: String = "" // Optional: for clickable actions
 )
