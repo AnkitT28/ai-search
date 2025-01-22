@@ -6,3 +6,5 @@ data class ChatMessage(
     val isUser: Boolean,
     val title: String = "" // Optional: for clickable actions
 )
+
+
