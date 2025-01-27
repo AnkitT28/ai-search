@@ -1,274 +1,484 @@
-//package com.example.aichat.view
-//
-//import android.Manifest
-//import android.content.Intent
-//import android.content.pm.PackageManager
-//import android.os.Bundle
-//import android.speech.RecognitionListener
-//import android.speech.RecognizerIntent
-//import android.speech.SpeechRecognizer
-//import android.speech.tts.TextToSpeech
-//import android.util.Log
-//import android.widget.Toast
-//import androidx.activity.compose.setContent
-//import androidx.activity.viewModels
-//import androidx.appcompat.app.AppCompatActivity
-//import androidx.compose.animation.*
-//import androidx.compose.animation.core.tween
-//import androidx.compose.foundation.layout.Box
-//import androidx.compose.foundation.layout.fillMaxSize
-//import androidx.compose.runtime.*
-//import androidx.compose.ui.Modifier
-//import androidx.core.app.ActivityCompat
-//import androidx.core.content.ContextCompat
-//import com.example.aichat.viewmodel.ChatViewModel
-//import java.util.Locale
-//
-//class AiChatActivity : AppCompatActivity() {
-//
-//    private val chatViewModel: ChatViewModel by viewModels()
-//
-//    // TTS instance
-//    private var tts: TextToSpeech? = null
-//
-//    // For streaming STT
-//    private var speechRecognizer: SpeechRecognizer? = null
-//    private lateinit var recognizerIntent: Intent
-//
-//    companion object {
-//        private const val PERMISSION_REQUEST_RECORD_AUDIO = 123
-//    }
-//
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//
-//        // 1) Check or request RECORD_AUDIO permission
-//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-//            != PackageManager.PERMISSION_GRANTED
-//        ) {
-//            Log.d("LOG_FOR_AUDIO", "RECORD_AUDIO permission not granted, requesting...")
-//            ActivityCompat.requestPermissions(
-//                this, arrayOf(Manifest.permission.RECORD_AUDIO), PERMISSION_REQUEST_RECORD_AUDIO
-//            )
-//        } else {
-//            Log.d("LOG_FOR_AUDIO", "RECORD_AUDIO permission already granted")
-//            // Initialize SpeechRecognizer
-//            initSpeechRecognizer()
-//        }
-//
-//        // 2) Initialize TTS
-//        tts = TextToSpeech(this) { status ->
-//            if (status == TextToSpeech.SUCCESS) {
-//                val result = tts?.setLanguage(Locale.US)
-//                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-//                    Log.e("TTS", "Language not supported")
-//                } else {
-//                    Log.d("TTS", "TTS initialized successfully")
-//                }
-//            } else {
-//                Log.e("TTS", "Initialization failed")
-//            }
-//        }
-//
-//        // 3) Set Compose UI
-//        setContent {
-//            var showPopup by remember { mutableStateOf(true) }
-//
-//            Box(modifier = Modifier.fillMaxSize()) {
-//                AnimatedVisibility(
-//                    visible = showPopup,
-//                    enter = slideInVertically(
-//                        initialOffsetY = { -it },
-//                        animationSpec = tween(durationMillis = 400)
-//                    ),
-//                    exit = slideOutVertically(
-//                        targetOffsetY = { -it },
-//                        animationSpec = tween(durationMillis = 400)
-//                    )
-//                ) {
-//                    ChatPopup(
-//                        viewModel = chatViewModel,
-//                        tts = tts,
-//                        onClose = {
-//                            // Stop recognition, finish activity
-//                            stopSpeechRecognition()
-//                            showPopup = false
-//                            finish()
-//                        },
-//                        startSpeechToText = {
-//                            // Toggle STT on/off
-//                            if (!chatViewModel.isRecording.value) {
-//                                startSpeechRecognition()
-//                            } else {
-//                                stopSpeechRecognition()
-//                            }
-//                        }
-//                    )
-//                }
-//            }
-//        }
-//    }
-//
-//    /** Initialize SpeechRecognizer and set RecognitionListener */
-//    private fun initSpeechRecognizer() {
-//        Log.d("LOG_FOR_AUDIO", "Initializing SpeechRecognizer...")
-//
-//        // Check if speech recognition is available
-//        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-//            Log.e("LOG_FOR_AUDIO", "Speech Recognition not available on this device.")
-//            handleUnsupportedSpeechRecognition()
-//            return
-//        }
-//
-//        // Initialize the SpeechRecognizer
-//        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
-//        Log.d("LOG_FOR_AUDIO", "SpeechRecognizer initialized successfully")
-//
-//        // Set the RecognitionListener
-//        speechRecognizer?.setRecognitionListener(object : RecognitionListener {
-//            override fun onReadyForSpeech(params: Bundle?) {
-//                chatViewModel.setRecording(true)
-//                Log.d("LOG_FOR_AUDIO", "Ready for speech")
-//            }
-//
-//            override fun onBeginningOfSpeech() {
-//                Log.d("LOG_FOR_AUDIO", "User started speaking")
-//            }
-//
-//            override fun onRmsChanged(rmsdB: Float) {
-//                // You can use this to animate UI based on sound levels
-//            }
-//
-//            override fun onBufferReceived(buffer: ByteArray?) {
-//                Log.d("LOG_FOR_AUDIO", "Buffer received")
-//            }
-//
-//            override fun onEndOfSpeech() {
-//                chatViewModel.setRecording(false)
-//                Log.d("LOG_FOR_AUDIO", "Speech ended")
-//            }
-//
-//            override fun onError(error: Int) {
-//                chatViewModel.setRecording(false)
-//                Log.e("LOG_FOR_AUDIO", "Error occurred: $error")
-//            }
-//
-//            override fun onResults(results: Bundle?) {
-//                val data = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-//                if (!data.isNullOrEmpty()) {
-//                    val userSpeech = data[0]
-//                    Log.d("LOG_FOR_AUDIO", "Recognized speech: $userSpeech")
-//
-//                    // Pass the recognized speech to ChatViewModel
-//                    chatViewModel.sendMessage(userSpeech, "Ankit")
-//
-//                    // Optionally, speak the recognized input
-//                    tts?.speak(userSpeech, TextToSpeech.QUEUE_FLUSH, null, null)
-//                } else {
-//                    Log.d("LOG_FOR_AUDIO", "No speech recognized")
-//                }
-//            }
-//
-//            override fun onPartialResults(partialResults: Bundle?) {
-//                val data = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-//                if (!data.isNullOrEmpty()) {
-//                    val partialSpeech = data[0]
-//                    Log.d("LOG_FOR_AUDIO", "Partial speech: $partialSpeech")
-//                }
-//            }
-//
-//            override fun onEvent(eventType: Int, params: Bundle?) {
-//                Log.d("LOG_FOR_AUDIO", "Event occurred: $eventType")
-//            }
-//        })
-//
-//        // Initialize the recognizer intent
-//        recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-//            putExtra(
-//                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-//                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-//            )
-//            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-//            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-//            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-//        }
-//    }
-//
-//    private fun startSpeechRecognition() {
-//        if (speechRecognizer == null) {
-//            Log.e("LOG_FOR_AUDIO", "SpeechRecognizer is not initialized")
-//            handleUnsupportedSpeechRecognition()
-//            return
-//        }
-//
-//        if (!::recognizerIntent.isInitialized) {
-//            Log.e("LOG_FOR_AUDIO", "RecognizerIntent is not initialized")
-//            handleUnsupportedSpeechRecognition()
-//            return
-//        }
-//
-//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-//            != PackageManager.PERMISSION_GRANTED
-//        ) {
-//            Log.e("LOG_FOR_AUDIO", "Permission not granted for RECORD_AUDIO")
-//            return
-//        }
-//
-//        chatViewModel.setRecording(true)
-//        Log.d("LOG_FOR_AUDIO", "Starting SpeechRecognizer...")
-//        speechRecognizer?.startListening(recognizerIntent)
-//        Log.d("LOG_FOR_AUDIO", "SpeechRecognizer started")
-//    }
-//
-//
-//    /** Stop speech recognition */
-//    private fun stopSpeechRecognition() {
-//        if (speechRecognizer == null) {
-//            Log.e("LOG_FOR_AUDIO", "SpeechRecognizer is not initialized")
-//            return
-//        }
-//
-//        chatViewModel.setRecording(false)
-//        speechRecognizer?.stopListening()
-//        Log.d("LOG_FOR_AUDIO", "SpeechRecognizer stopped")
-//    }
-//
-//    override fun onDestroy() {
-//        super.onDestroy()
-//        tts?.stop()
-//        tts?.shutdown()
-//        tts = null
-//
-//        speechRecognizer?.destroy()
-//        speechRecognizer = null
-//    }
-//
-//    // Handle runtime permission result
-//    override fun onRequestPermissionsResult(
-//        requestCode: Int,
-//        permissions: Array<out String>,
-//        grantResults: IntArray
-//    ) {
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-//        if (requestCode == PERMISSION_REQUEST_RECORD_AUDIO) {
-//            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                Log.d("LOG_FOR_AUDIO", "RECORD_AUDIO permission granted")
-//                initSpeechRecognizer()
-//            } else {
-//                Log.e("LOG_FOR_AUDIO", "RECORD_AUDIO permission denied")
-//            }
-//        }
-//    }
-//
-//    private fun handleUnsupportedSpeechRecognition() {
-//        runOnUiThread {
-//            Toast.makeText(
-//                this,
-//                "Speech recognition is not supported on your device. Install Google App for support.",
-//                Toast.LENGTH_LONG
-//            ).show()
-//        }
-//    }
-//
-//
-//}
+package com.example.aichat.view
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.util.Log
+import android.view.WindowManager
+import android.widget.Toast
+import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.aichat.R
+import com.example.aichat.model.ChatMessage
+import com.example.aichat.viewmodel.ChatViewModel
+import java.util.Locale
+
+class AiChatActivity : AppCompatActivity() {
+
+    private val chatViewModel: ChatViewModel by viewModels()
+    private var speechRecognizer: SpeechRecognizer? = null
+    private lateinit var recognizerIntent: Intent
+    private var isListening = mutableStateOf(false)
+    private var liveSpeechInput = mutableStateOf("")
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        initSpeechRecognizer()
+        // Make the activity fullscreen
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+
+        // Set the status bar and navigation bar color
+        window.statusBarColor = Color(0xFF1F002A).toArgb()
+        window.navigationBarColor = Color(0xFF1F002A).toArgb()
+
+        setContent {
+            ChatScreen(chatViewModel)
+        }
+    }
+    private fun initSpeechRecognizer() {
+        if (SpeechRecognizer.isRecognitionAvailable(this)) {
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+                setRecognitionListener(object : RecognitionListener {
+                    override fun onReadyForSpeech(params: Bundle?) {
+                        Log.d("SpeechRecognizer", "Ready for speech")
+                    }
+
+                    override fun onBeginningOfSpeech() {
+                        isListening.value = true
+                        Log.d("SpeechRecognizer", "Beginning of speech")
+                    }
+
+                    override fun onPartialResults(partialResults: Bundle?) {
+                        val data = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        if (!data.isNullOrEmpty()) {
+                            val partialSpeech = data[0]
+                            liveSpeechInput.value = partialSpeech
+                            Log.d("SpeechRecognizer", "Partial: $partialSpeech")
+                        }
+                    }
+
+                    override fun onResults(results: Bundle?) {
+                        val data = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        if (!data.isNullOrEmpty()) {
+                            val finalSpeech = data[0]
+                            chatViewModel.sendMessage(finalSpeech)
+                            liveSpeechInput.value = ""
+                            Log.d("SpeechRecognizer", "Final: $finalSpeech")
+                        }
+                        isListening.value = false
+                    }
+
+                    override fun onEndOfSpeech() {
+                        isListening.value = false
+                        Log.d("SpeechRecognizer", "End of speech")
+                    }
+
+                    override fun onError(error: Int) {
+                        isListening.value = false
+                        liveSpeechInput.value = ""
+                        Log.e("SpeechRecognizer", "Error code: $error")
+                    }
+
+                    override fun onBufferReceived(buffer: ByteArray?) {}
+                    override fun onRmsChanged(rmsdB: Float) {}
+                    override fun onEvent(eventType: Int, params: Bundle?) {}
+                })
+            }
+
+            recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+            }
+        } else {
+            Log.d("SpeechRecognizer", "Speech recognition not available on this device")
+        }
+    }
+
+    private fun startSpeechRecognition() {
+        speechRecognizer?.startListening(recognizerIntent)
+    }
+
+    private fun stopSpeechRecognition() {
+        speechRecognizer?.stopListening()
+        isListening.value = false
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        speechRecognizer?.destroy()
+    }
+
+    private fun handleLinkClick(link: String, context: Context) {
+        when (link) {
+            "Taro Prediction" -> {
+                val intent = Intent(context, MyPredictionActivity::class.java)
+                context.startActivity(intent)
+            }
+            else -> {
+                Toast.makeText(context, "Unknown link: $link", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    @Composable
+    fun CircularMicAnimation() {
+        val infiniteTransition = rememberInfiniteTransition()
+        val circleAlpha = infiniteTransition.animateFloat(
+            initialValue = 0.3f,
+            targetValue = 0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1500, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ), label = ""
+        )
+        val circleRadius = infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 80f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1500, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ), label = ""
+        )
+
+        Box(
+            modifier = Modifier.size(100.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawCircle(
+                    color = Color.Blue.copy(alpha = circleAlpha.value),
+                    radius = circleRadius.value
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun ChatScreen(chatViewModel: ChatViewModel) {
+        val liveSpeechInput = remember { mutableStateOf("") }
+        val chatMessages by chatViewModel.chatMessages.collectAsState()
+
+        val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+        val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            // Background Image
+            Image(
+                painter = painterResource(id = R.drawable.main_background_img),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // Foreground Content
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF1F002A), Color(0xFF1F002A))
+                        )
+                    )
+                    .padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    // Always show GreetingSection
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Search Bar with star image, input field, and mic icon
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFF20FFFFFF))
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image( // Always show the star icon
+                            painter = painterResource(id = R.drawable.search_star_icon),
+                            contentDescription = "Star icon",
+                            modifier = Modifier.size(28.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Input Field with white cursor
+                        BasicTextField(
+                            value = liveSpeechInput.value,
+                            onValueChange = { liveSpeechInput.value = it },
+                            textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Search
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onSearch = {
+                                    if (liveSpeechInput.value.isNotBlank()) {
+                                        chatViewModel.sendMessage(liveSpeechInput.value)
+                                        liveSpeechInput.value = ""
+                                    }
+                                    focusManager.clearFocus() // Clear focus after sending message
+                                }
+                            ),
+                            cursorBrush = SolidColor(Color.White),
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(4.dp)
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { focusState ->
+                                    // No need to change isExpanded here
+                                },
+                            decorationBox = { innerTextField ->
+                                if (liveSpeechInput.value.isEmpty()) {
+                                    Text(
+                                        text = "Ask the universe...",
+                                        style = TextStyle(
+                                            color = Color(0xFFAAAAAA),
+                                            fontSize = 16.sp
+                                        )
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Mic or Cancel Icon
+                        if (liveSpeechInput.value.isNotEmpty()) {
+                            IconButton(
+                                onClick = { liveSpeechInput.value = "" },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Cancel Input",
+                                    tint = Color(0xFFFFFFFF)
+                                )
+                            }
+                        } else {
+                            IconButton(
+                                onClick = {
+                                    startSpeechRecognition()
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Mic,
+                                    contentDescription = "Voice Input",
+                                    tint = Color(0xFFFFFFFF)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Content Section (Always Expanded)
+                    ExpandedContent(chatMessages)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun ExpandedContent(chatMessages: List<ChatMessage>) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Add the suggestions as a header
+            item {
+                SuggestionsHeader()
+            }
+
+            // Add the chat messages (no separator needed)
+            items(chatMessages) { message ->
+                if (message.isUser) {
+                    UserMessageBox(message.userMessage)
+                } else {
+                    AIResponseBox(message.botResponse)
+                }
+            }
+        }
+    }
+    @Composable
+    fun SuggestionsHeader() {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Suggestions",
+                style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            // List of suggestions
+            val suggestions = listOf(
+                "View my Kundli-based predictions",
+                "Get daily insights from my birth chart",
+                "When is the next full moon?",
+                "Explore zodiac compatibility",
+                "Generate a new Kundli"
+            )
+
+            suggestions.forEach { suggestion ->
+                // Add space between items
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Text with background and arrow
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF9575CD))
+                        .clickable {
+                            // Handle suggestion click (e.g., send as query)
+                        }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Suggestion Text
+                        Text(
+                            text = suggestion,
+                            style = TextStyle(color = Color.White, fontSize = 16.sp)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Arrow Icon
+                        Icon(
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = "Arrow",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .graphicsLayer {
+                                    rotationZ = 225f
+                                }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+
+
+    @Composable
+    fun DefaultContent(chatMessages: List<ChatMessage>) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(chatMessages) { message ->
+                if (message.isUser) {
+                    UserMessageBox(message.userMessage)
+                } else {
+                    AIResponseBox(message.botResponse)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun UserMessageBox(message: String) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Color(0xFFE5D9F2),
+                    RoundedCornerShape(8.dp)
+                )
+                .padding(8.dp)
+        ) {
+            Text(
+                text = "Search: $message",
+                color = Color.Black,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+
+    @Composable
+    fun AIResponseBox(message: String) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 8.dp, bottom = 8.dp)
+        ) {
+            TypewriterText(
+                fullText = message,
+                modifier = Modifier.padding(bottom = 4.dp),
+                color = Color.White
+            )
+        }
+    }
+
+}

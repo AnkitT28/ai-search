@@ -75,6 +75,13 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
 
-    implementation ("com.squareup.okhttp3:logging-interceptor:4.10.0")
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.material)
+
+
+
+
+
+    implementation (libs.logging.interceptor)
 
 }

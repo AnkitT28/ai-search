@@ -16,20 +16,21 @@ class ChatRepository {
         return try {
             // Create a static profile
             val profile = Profile(
-                name = "Alok Prasad",
+                name = "Ankit Tiwari",
                 gender = "Male",
-                birth_date = 24,
-                birth_month = 3,
-                birth_year = 1995,
-                birth_hour = 14,
-                birth_min = 47,
-                birth_lat = "26.993314",
-                birth_lon = "84.404072",
-                birth_place = "Lauriya, Bihar",
+                birth_date = 28,
+                birth_month = 2,
+                birth_year = 1999,
+                birth_hour = 11,
+                birth_min = 23,
+                birth_lat = "25.7464",
+                birth_lon = "82.6837",
+                birth_place = "Jaunpur, Uttar Pradesh, India",
                 is_unknown_time = false,
                 birth_timezone = "5.5",
                 is_primary = true
             )
+
 
             // Prepare the request
             val request = ChatRequest(
@@ -51,14 +52,13 @@ class ChatRepository {
 
             // Check if response data is available
             val searchResult = response.data?.search_result ?: "No search result available"
-//            val firstLink = response.data?.navigations?.firstOrNull()?.link.orEmpty()
-            val firstLink = response.data?.navigations?.firstOrNull()?.title.orEmpty()
+            val navigations = response.data?.navigations
 
-            // Return the chat message
+            // Return the chat message with navigations
             ChatMessage(
                 isUser = false,
                 botResponse = searchResult, // Use search_result from the response
-                title = firstLink // Use the first navigation link (if available)
+                navigations = navigations // Pass navigations to the UI
             )
         } catch (e: Exception) {
             // Log the error with details
