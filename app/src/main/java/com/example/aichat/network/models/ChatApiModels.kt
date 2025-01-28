@@ -22,14 +22,16 @@ data class Profile(
     val is_primary: Boolean
 )
 
-data class ChatResponse(
-    val status: Int,
-    val success: Boolean,
-    val data: ResponseData? = null // Make it nullable to handle missing fields
+data class StreamResponse(
+    val is_complete: Boolean,
+    val current_step: Int,
+    val data: StreamData
 )
 
-data class ResponseData(
-    val search_result: String? = null, // Nullable
+data class StreamData(
+    val message: String? = null, // For loader messages
+    val success: Boolean? = null,
+    val search_result: String? = null,
     val navigations: List<Navigation>? = null,
     val chat_profile: Profile? = null,
     val chat_context: String? = null
@@ -38,6 +40,33 @@ data class ResponseData(
 data class Navigation(
     val title: String,
     val link: String,
-    val icon: String,
+    val icon: String? = null, // Assuming icon is optional
     val description: String
 )
+
+data class TrendingQueriesResponse(
+    val status: Int,
+    val success: Boolean,
+    val data: TrendingQueriesData
+)
+
+data class TrendingQueriesData(
+    val queries: List<TrendingQueryCategory>
+)
+
+data class TrendingQueryCategory(
+    val category: String,
+    val queries: List<String>
+)
+
+data class RecentQueriesResponse(
+    val status: Int,
+    val success: Boolean,
+    val data: RecentQueriesData
+)
+
+data class RecentQueriesData(
+    val queries: List<String>
+)
+
+

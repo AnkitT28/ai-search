@@ -54,6 +54,14 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.appcompat)
 
+
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Jetpack Compose
+    implementation(libs.ui)
+
     // LiveData
     implementation(libs.androidx.lifecycle.livedata)
 
@@ -78,10 +86,15 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.material)
 
+    implementation(libs.logging.interceptor)
+    implementation(libs.okhttp.sse)
 
 
 
+    // Gson
+    implementation(libs.gson)
 
-    implementation (libs.logging.interceptor)
+    implementation("com.squareup.okhttp3:okhttp-sse:4.10.0")
+
 
 }

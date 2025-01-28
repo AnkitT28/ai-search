@@ -14,57 +14,49 @@ import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.activity.compose.BackHandler
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.focus.*
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.aichat.R
@@ -75,14 +67,21 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 
+@OptIn(ExperimentalMaterialApi::class)
 class MainActivity : AppCompatActivity() {
 
+    // ViewModel
     private val chatViewModel: ChatViewModel by viewModels()
 
+    // Speech
     private var tts: TextToSpeech? = null
     private var speechRecognizer: SpeechRecognizer? = null
     private lateinit var recognizerIntent: Intent
-    private var isListening = mutableStateOf(false)
+
+    // Mutable states for speech recognition
+    private var isListening = mutableStateOf(false)  // true if actively capturing audio
+    private var partialSpeech by mutableStateOf("")  // partial results
+    private var recognizedText by mutableStateOf("") // final text
 
     companion object {
         private const val PERMISSION_REQUEST_RECORD_AUDIO = 123
@@ -91,7 +90,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Check for RECORD_AUDIO permission
+        // Request Mic Permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
         ) {
@@ -109,7 +108,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Set the status bar and navigation bar color
+        // Set system bar colors
         window.statusBarColor = Color(0xFF1F002A).toArgb()
         window.navigationBarColor = Color(0xFF1F002A).toArgb()
 
@@ -118,6 +117,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Prepare the SpeechRecognizer with a basic RecognitionListener.
+     */
     private fun initSpeechRecognizer() {
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
@@ -135,8 +137,7 @@ class MainActivity : AppCompatActivity() {
                         val data =
                             partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                         if (!data.isNullOrEmpty()) {
-                            val partialSpeech = data[0]
-                            chatViewModel.setLiveSpeechInput(partialSpeech) // Update via ViewModel
+                            partialSpeech = data[0]
                             Log.d("SpeechRecognizer", "Partial: $partialSpeech")
                         }
                     }
@@ -144,13 +145,17 @@ class MainActivity : AppCompatActivity() {
                     override fun onResults(results: Bundle?) {
                         val data = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                         if (!data.isNullOrEmpty()) {
-                            val finalSpeech = data[0]
-                            chatViewModel.sendMessage(finalSpeech)
-                            chatViewModel.clearRecentSearches() // Clear recent searches when sending a message
-                            chatViewModel.setLiveSpeechInput(finalSpeech) // Set the search bar text to the recognized speech
-                            Log.d("SpeechRecognizer", "Final: $finalSpeech")
+                            recognizedText = data[0]
+                            // Send recognized text to ViewModel for API call
+
+                            // Clear old responses, then send the new question
+                            chatViewModel.clearMessages()
+                            chatViewModel.setLiveSpeechInput(recognizedText)
+                            chatViewModel.sendMessage(recognizedText)
+                            Log.d("SpeechRecognizer", "Final: $recognizedText")
                         }
                         isListening.value = false
+                        partialSpeech = ""
                     }
 
                     override fun onEndOfSpeech() {
@@ -159,15 +164,9 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     override fun onError(error: Int) {
-                        isListening.value = false
-                        chatViewModel.setLiveSpeechInput("") // Clear input via ViewModel
-                        chatViewModel.clearRecentSearches() // Clear recent searches when sending a message
                         Log.e("SpeechRecognizer", "Error code: $error")
-                        Toast.makeText(
-                            this@MainActivity,
-                            "Speech recognition error: $error",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        isListening.value = false
+                        partialSpeech = ""
                     }
 
                     override fun onBufferReceived(buffer: ByteArray?) {}
@@ -186,11 +185,9 @@ class MainActivity : AppCompatActivity() {
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             }
         } else {
-            // Inform the user that speech recognition is unavailable
-            Log.d("SpeechRecognizer", "Speech recognition not available on this device")
             Toast.makeText(
                 this,
-                "Speech Recognition is not available on this device",
+                "Speech Recognition not available on this device",
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -211,6 +208,217 @@ class MainActivity : AppCompatActivity() {
         speechRecognizer?.destroy()
     }
 
+    /**
+     * Cancel or Stop an in-flight streaming call if user navigates away
+     * You can call chatViewModel.cancelStreaming() in onPause or in back handler.
+     */
+    override fun onPause() {
+        super.onPause()
+        chatViewModel.cancelStreaming()
+    }
+
+    /**
+     * Main entry composable: sets up a bottom sheet for voice input + main content
+     */
+    @SuppressLint("InvalidColorHexValue")
+    @Composable
+    fun MainScreen(chatViewModel: ChatViewModel) {
+        val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
+        val coroutineScope = rememberCoroutineScope()
+
+        ModalBottomSheetLayout(
+            sheetState = sheetState,
+            sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            sheetBackgroundColor = Color(0xFF2B0142),
+            scrimColor = Color.Black.copy(alpha = 0.5f),
+            sheetContent = {
+                ListeningBottomSheetContent(
+                    partialText = partialSpeech,
+                    isListening = isListening.value,
+                    onStartListening = {
+                        // Called when the sheet wants to force listening mode
+                        startSpeechRecognition()
+                    },
+                    onCloseSheet = {
+                        coroutineScope.launch { sheetState.hide() }
+                    }
+                )
+            }
+        ) {
+            MainScreenContent(chatViewModel, sheetState)
+        }
+    }
+
+    /**
+     * The bottom sheet with auto-listening logic + 6s inactivity timer
+     */
+    @Composable
+    fun ListeningBottomSheetContent(
+        partialText: String,
+        isListening: Boolean,
+        onStartListening: () -> Unit,
+        onCloseSheet: () -> Unit
+    ) {
+        // "Idle", "Listening", "Completed"
+        val listeningState = remember { mutableStateOf("Idle") }
+
+        // If we open the sheet => automatically go to Listening
+        // as per your requirement
+        LaunchedEffect(Unit) {
+            listeningState.value = "Listening"
+            onStartListening()
+        }
+
+        // 6-second inactivity timer
+        // If we are in "Listening" state and partialText doesn't change => revert to "Idle"
+        var lastPartialUpdate by remember { mutableLongStateOf(System.currentTimeMillis()) }
+        val idleTimeoutMs = 6000L
+
+        // Watch partialText changes
+        LaunchedEffect(partialText) {
+            if (listeningState.value == "Listening") {
+                // user said something => update last partial time
+                lastPartialUpdate = System.currentTimeMillis()
+            }
+        }
+
+        // Check idle every 1 second
+        LaunchedEffect(isListening, partialText, listeningState.value) {
+            while (listeningState.value == "Listening") {
+                delay(1000)
+                val elapsed = System.currentTimeMillis() - lastPartialUpdate
+                if (elapsed > idleTimeoutMs) {
+                    // No speech for 6s => switch to idle
+                    listeningState.value = "Idle"
+                    stopSpeechRecognition() // stop listening
+                    break
+                }
+            }
+        }
+
+        // If final results have arrived => go "Completed" => then auto-close
+        // We'll do that in a side effect
+        LaunchedEffect(isListening) {
+            // If we were listening, but now the system has stopped => user done speaking
+            if (!isListening && listeningState.value == "Listening") {
+                listeningState.value = "Completed"
+                // show check mark for 1s, then close
+                delay(1500)
+                onCloseSheet()
+                // reset state to idle for next time
+                listeningState.value = "Idle"
+            }
+        }
+
+        // UI animation for "Listening"
+        val infiniteTransition = rememberInfiniteTransition()
+        val animatedAlpha = infiniteTransition.animateFloat(
+            initialValue = 0.5f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(500, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = when (listeningState.value) {
+                    "Idle" -> "Tap Microphone to Speak"
+                    "Listening" -> "Listening...."
+                    "Completed" -> "Searching"
+                    else -> ""
+                },
+                color = Color.LightGray,
+                style = MaterialTheme.typography.body2.copy(fontSize = 14.sp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = when (listeningState.value) {
+                    "Listening" -> partialText
+                    "Completed" -> recognizedText
+                    else -> ""
+                },
+                color = Color.White,
+                style = MaterialTheme.typography.h5.copy(fontWeight = FontWeight.Bold),
+                maxLines = 2
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(
+                        when (listeningState.value) {
+                            "Idle" -> Color(0xFFCE42F5)
+                            "Listening" -> Color(0xFF42A5F5)
+                            "Completed" -> Color(0xFF66BB6A)
+                            else -> Color.Gray
+                        }
+                    )
+                    .clickable {
+                        when (listeningState.value) {
+                            "Idle" -> {
+                                // user taps the mic => start listening
+                                listeningState.value = "Listening"
+                                partialSpeech = ""
+                                lastPartialUpdate = System.currentTimeMillis()
+                                onStartListening()
+                            }
+
+                            "Listening" -> {
+                                // optional: user taps => you can stop if desired
+
+                            }
+
+                            "Completed" -> {
+                                listeningState.value = "Idle"
+                                onCloseSheet()
+                            }
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                when (listeningState.value) {
+                    "Idle" -> Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Mic Icon",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+
+                    "Listening" -> Canvas(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .graphicsLayer { alpha = animatedAlpha.value }
+                    ) {
+                        drawCircle(color = Color.White, alpha = 0.3f)
+                        drawCircle(color = Color.White, radius = size.minDimension / 2.5f)
+                    }
+
+                    "Completed" -> Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Check Icon",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle navigation clicks
+     */
     private fun handleNavigationClick(link: String, context: Context) {
         when (link) {
             "/kundli-analysis" -> {
@@ -218,12 +426,17 @@ class MainActivity : AppCompatActivity() {
                 context.startActivity(intent)
             }
 
-            "/manglik-dosha" -> {
+            "/moon-sign-impact" -> {
                 val intent = Intent(context, MyPredictionActivity::class.java)
                 context.startActivity(intent)
             }
 
-            "/vimshottari-dasha" -> {
+            "/moon-sign-career" -> {
+                val intent = Intent(context, MyPredictionActivity::class.java)
+                context.startActivity(intent)
+            }
+
+            "/daily-predictions" -> {
                 val intent = Intent(context, MyPredictionActivity::class.java)
                 context.startActivity(intent)
             }
@@ -234,86 +447,51 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @Composable
-    fun CircularMicAnimation() {
-        val infiniteTransition = rememberInfiniteTransition()
-        val circleAlpha = infiniteTransition.animateFloat(
-            initialValue = 0.3f,
-            targetValue = 0f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 1500, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ), label = ""
-        )
-        val circleRadius = infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 80f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 1500, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ), label = ""
-        )
 
-        Box(
-            modifier = Modifier.size(100.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawCircle(
-                    color = Color.Blue.copy(alpha = circleAlpha.value),
-                    radius = circleRadius.value
-                )
-            }
-        }
-    }
-
-    @SuppressLint("InvalidColorHexValue")
+    /**
+     * Main content that shows the search bar, list of responses, etc.
+     */
     @Composable
-    fun MainScreen(chatViewModel: ChatViewModel) {
+    fun MainScreenContent(
+        chatViewModel: ChatViewModel,
+        sheetState: ModalBottomSheetState
+    ) {
         val isExpanded = remember { mutableStateOf(false) }
+
         val chatMessages by chatViewModel.chatMessages.collectAsState()
         val suggestions by chatViewModel.suggestions.collectAsState()
         val recentSearches by chatViewModel.recentSearches.collectAsState()
         val liveSpeechInput by chatViewModel.liveSpeechInput.collectAsState()
 
         val focusRequester = remember { FocusRequester() }
-        val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
-
+        val focusManager = LocalFocusManager.current
         val coroutineScope = rememberCoroutineScope()
 
-        // Function to reset suggestions via ViewModel
-        fun resetSuggestions() {
+        // Reset suggestions when first launched
+        LaunchedEffect(Unit) {
             chatViewModel.resetSuggestions()
         }
 
-        // Reset suggestions when the composable is first launched
-        LaunchedEffect(Unit) {
-            resetSuggestions()
-        }
-
-        // Reset suggestions every time the chat is expanded
+        // Reset suggestions each time we expand
         LaunchedEffect(isExpanded.value) {
             if (isExpanded.value) {
-                resetSuggestions()
+                chatViewModel.resetSuggestions()
             }
         }
 
-        // Handle device back press to collapse expanded mode and clear suggestions
+        // Handle back press => close + cancel streaming
         BackHandler(enabled = isExpanded.value) {
             isExpanded.value = false
             chatViewModel.clearMessages()
             chatViewModel.clearSuggestions()
-            chatViewModel.clearRecentSearches()
-            chatViewModel.setLiveSpeechInput("") // Clear live speech input
+            chatViewModel.setLiveSpeechInput("")
             focusManager.clearFocus()
-            tts?.stop() // Stop the TTS when back is pressed
+            tts?.stop()
+            chatViewModel.cancelStreaming()
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            // Background Image
+        Box(Modifier.fillMaxSize()) {
+            // Background
             Image(
                 painter = painterResource(id = R.drawable.main_background_img),
                 contentDescription = null,
@@ -321,49 +499,52 @@ class MainActivity : AppCompatActivity() {
                 contentScale = ContentScale.Crop
             )
 
-            // Foreground Content
+            // Foreground gradient + layout
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color(0xFF1F002A), Color(0xFF1F002A))
+                            listOf(
+                                Color(0xFF1F002A),
+                                Color(0xFF1F002A)
+                            )
                         )
                     )
-                    .padding(16.dp)
+                    .padding(8.dp)
             ) {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 8.dp),
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.Start
                 ) {
-                    // Greeting Section (only visible when not in expanded mode)
+                    // Greeting (visible only if not expanded)
                     AnimatedVisibility(visible = !isExpanded.value) {
                         GreetingSection()
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    // Search Bar with star image, input field, and mic icon
+                    // Search Bar
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(Color(0xFF20FFFFFF))
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Back Arrow (Visible only in expanded mode)
                         if (isExpanded.value) {
                             IconButton(
                                 onClick = {
-                                    isExpanded.value = false // Collapse on arrow click
-                                    chatViewModel.clearMessages() // Clear chat messages
-                                    chatViewModel.clearSuggestions() // Clear suggestions
-                                    chatViewModel.clearRecentSearches() // Clear recent searches
-                                    chatViewModel.setLiveSpeechInput("") // Clear live speech input
-                                    focusManager.clearFocus() // Clear the focus of the text field
-                                    tts?.stop() // Stop TTS
+                                    isExpanded.value = false
+                                    chatViewModel.clearMessages()
+                                    chatViewModel.clearSuggestions()
+                                    chatViewModel.setLiveSpeechInput("")
+                                    focusManager.clearFocus()
+                                    tts?.stop()
                                 },
                                 modifier = Modifier.size(24.dp)
                             ) {
@@ -383,22 +564,19 @@ class MainActivity : AppCompatActivity() {
 
                         Spacer(modifier = Modifier.width(12.dp))
 
-                        // Input Field with white cursor using TextFieldValue
+                        // TextField
                         BasicTextField(
                             value = liveSpeechInput,
-                            onValueChange = {
-                                chatViewModel.setLiveSpeechInput(it.text) // Update via ViewModel
-                            },
+                            onValueChange = { chatViewModel.setLiveSpeechInput(it.text) },
                             textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Search
-                            ),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                             keyboardActions = KeyboardActions(
                                 onSearch = {
                                     if (liveSpeechInput.text.isNotBlank()) {
+                                        //clear all previous messages when start new search
+                                        chatViewModel.clearMessages()
                                         chatViewModel.sendMessage(liveSpeechInput.text)
-                                        // Do not clear the input to retain it
-                                        isExpanded.value = true // Expand to show messages
+                                        isExpanded.value = true
                                     }
                                 }
                             ),
@@ -408,9 +586,9 @@ class MainActivity : AppCompatActivity() {
                                 .padding(4.dp)
                                 .focusRequester(focusRequester)
                                 .onFocusChanged { focusState ->
-                                    isExpanded.value = focusState.isFocused // Update focus state
+                                    isExpanded.value = focusState.isFocused
                                     if (focusState.isFocused && suggestions.isEmpty()) {
-                                        chatViewModel.resetSuggestions() // Reset suggestions when focusing if they are empty
+                                        chatViewModel.resetSuggestions()
                                     }
                                 },
                             decorationBox = { innerTextField ->
@@ -429,34 +607,38 @@ class MainActivity : AppCompatActivity() {
 
                         Spacer(modifier = Modifier.width(12.dp))
 
-                        // Mic or Cancel Icon
+                        // If text is typed => show X, else show mic
                         if (liveSpeechInput.text.isNotEmpty()) {
                             IconButton(
                                 onClick = {
-                                    chatViewModel.setLiveSpeechInput("") // Clear input via ViewModel
-                                    chatViewModel.clearSuggestions() // Clear suggestions when cancelling input
-                                    chatViewModel.clearRecentSearches() // Clear recent searches when cancelling input
+                                    chatViewModel.setLiveSpeechInput("")
+                                    chatViewModel.clearSuggestions()
+                                    chatViewModel.clearRecentSearches()
                                 },
                                 modifier = Modifier.size(24.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Cancel Input",
-                                    tint = Color(0xFFFFFFFF)
+                                    tint = Color.White
                                 )
                             }
                         } else {
+                            // Mic => open bottom sheet
                             IconButton(
                                 onClick = {
                                     isExpanded.value = true
-                                    startSpeechRecognition()
+                                    recognizedText = ""
+                                    partialSpeech = ""
+                                    // show bottom sheet
+                                    coroutineScope.launch { sheetState.show() }
                                 },
                                 modifier = Modifier.size(24.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Mic,
                                     contentDescription = "Voice Input",
-                                    tint = Color(0xFFFFFFFF)
+                                    tint = Color.White
                                 )
                             }
                         }
@@ -464,16 +646,16 @@ class MainActivity : AppCompatActivity() {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Content Section: Show messages only when expanded
+                    // If expanded => show chat content
                     if (isExpanded.value) {
                         ExpandedContent(
-                            chatMessages = chatMessages,
+                            chatMessages = chatViewModel.chatMessages.collectAsState().value,
                             suggestions = suggestions,
                             recentSearches = recentSearches,
                             onSuggestionClick = { suggestion ->
-                                chatViewModel.setLiveSpeechInput(suggestion) // Update search bar
-                                chatViewModel.sendMessage(suggestion) // Send the message
-                                isExpanded.value = true // Ensure UI is expanded
+                                chatViewModel.setLiveSpeechInput(suggestion)
+                                chatViewModel.sendMessage(suggestion)
+                                isExpanded.value = true
                             },
                             onNavigationClick = { navigation ->
                                 handleNavigationClick(navigation.link, this@MainActivity)
@@ -485,29 +667,34 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
     @Composable
     fun GreetingSection() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 40.dp),
+                .padding(top = 40.dp, bottom = 16.dp),
             horizontalAlignment = Alignment.Start
         ) {
             Text(
                 text = "Hi, Good Morning",
                 color = Color.White,
                 fontSize = 12.sp,
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.body2
             )
             Text(
                 text = "Ankit Tiwari",
                 color = Color.White,
                 fontSize = 20.sp,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
             )
         }
     }
 
+    /**
+     * Expanded Content: we ONLY show AI responses
+     * (We skip user messages to hide user’s question text in the UI.)
+     */
     @Composable
     fun ExpandedContent(
         chatMessages: List<ChatMessage>,
@@ -518,68 +705,74 @@ class MainActivity : AppCompatActivity() {
     ) {
         LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight() // Ensure it covers the available height
+                .fillMaxSize()
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Conditionally add SuggestionsHeader and separator only if suggestions are not empty
+            // Suggestions
             if (suggestions.isNotEmpty()) {
-                // Add the suggestions as a header
                 item {
-                    SuggestionsHeader(
-                        suggestions = suggestions,
-                        onSuggestionClick = onSuggestionClick
-                    )
+                    SuggestionsHeader(suggestions, onSuggestionClick)
                 }
 
-                // Add a separator between the suggestions and recent searches
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider(thickness = 1.dp, color = Color.Gray.copy(alpha = 0.5f))
+                    Divider(thickness = 1.dp, color = Color.Gray.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                // Recent searches
+                if (recentSearches.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Recent Searches",
+                            style = TextStyle(
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
+                    items(recentSearches) { recentSearch ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSuggestionClick(recentSearch) }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Restore,
+                                contentDescription = "Recent Search",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = recentSearch,
+                                style = TextStyle(color = Color.White, fontSize = 14.sp)
+                            )
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Divider(thickness = 1.dp, color = Color.Gray.copy(alpha = 0.5f))
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 }
             }
 
-            // Conditionally add Recent Searches Header and list
-            if (recentSearches.isNotEmpty()) {
-                // Recent Searches Header
-                item {
-                    Text(
-                        text = "Recent Searches",
-                        style = TextStyle(
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        modifier = Modifier.padding(bottom = 8.dp, start = 6.dp)
-                    )
-                }
-
-                // Recent Searches List
-                items(recentSearches) { recentSearch ->
-                    RecentSearchItem(recentSearch = recentSearch)
-                }
-
-                // Add a separator between recent searches and chat messages
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider(thickness = 1.dp, color = Color.Gray.copy(alpha = 0.5f))
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
-
-            // Add the chat messages
-            items(chatMessages) { message ->
-                if (message.isUser) {
-                    UserMessageBox(message.userMessage)
-                } else {
-                    AIResponseBox(
-                        message = message.botResponse,
-                        navigations = message.navigations,
-                        onNavigationClick = onNavigationClick
-                    )
-                }
+            // Show AI responses only
+            items(chatMessages.filter { !it.isUser }) { message ->
+                AIResponseBox(
+                    message = message.botResponse,
+                    navigations = message.navigations,
+                    isLoader = message.isLoader,
+                    onNavigationClick = onNavigationClick
+                )
             }
         }
     }
@@ -589,175 +782,140 @@ class MainActivity : AppCompatActivity() {
         suggestions: List<String>,
         onSuggestionClick: (String) -> Unit
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Header Text: "Suggestions" with font size 14sp
+        Column(Modifier.fillMaxWidth()) {
             Text(
                 text = "Suggestions",
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 14.sp
-                ),
-                modifier = Modifier.padding(bottom = 8.dp, start = 6.dp)
+                style = TextStyle(color = Color.White, fontSize = 14.sp),
+                modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            // Iterate over the suggestions list
             suggestions.forEach { suggestion ->
-                // Space between suggestion items
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // Suggestion Item with background and clickable behavior
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF20FFFFFF)) // Semi-transparent background
-                        .clickable {
-                            onSuggestionClick(suggestion) // Handle suggestion click
-                        }
-                        .padding(horizontal = 16.dp, vertical = 8.dp) // Padding inside the box
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF20FFFFFF))
+                        .clickable { onSuggestionClick(suggestion) }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Suggestion Text with font size 14sp
-                        Text(
-                            text = suggestion,
-                            style = TextStyle(
-                                color = Color.White,
-                                fontSize = 14.sp
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.width(8.dp)) // Space between text and arrow
-
-                        // Arrow Icon rotated to 225 degrees
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(suggestion, style = TextStyle(color = Color.White, fontSize = 14.sp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = "Arrow",
                             tint = Color.White,
                             modifier = Modifier
                                 .size(20.dp)
-                                .graphicsLayer {
-                                    rotationZ = 225f // Rotates the arrow icon
-                                }
+                                .graphicsLayer { rotationZ = 225f }
                         )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp)) // Space after the last suggestion
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 
-    @Composable
-    fun UserMessageBox(message: String) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Color(0xFFE5D9F2),
-                    RoundedCornerShape(8.dp)
-                )
-                .padding(8.dp)
-        )
-        {
-            Text(
-                text = "Search: $message",
-                color = Color.Black,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-    }
-
+    /**
+     * Show final or partial AI responses, plus “Listen” and “Copy” options
+     */
     @SuppressLint("InvalidColorHexValue")
     @Composable
     fun AIResponseBox(
         message: String?,
         navigations: List<Navigation>?,
+        isLoader: Boolean,
         onNavigationClick: (Navigation) -> Unit
     ) {
         val context = LocalContext.current
+        val safeMessage = message ?: "No message available."
+        var isMessageComplete by remember { mutableStateOf(false) }
         var isSpeakerOn by remember { mutableStateOf(false) }
-        var isMessageComplete by remember { mutableStateOf(false) } // State to track message completion
 
-        val fallbackMessage = "I can't understand your request."
+        // local TTS
+        var localTTS: TextToSpeech? = remember {
+            TextToSpeech(context) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    tts?.language = Locale.US
+                }
+            }
+        }
+        DisposableEffect(Unit) {
+            onDispose { localTTS?.shutdown() }
+        }
 
         Column(
-            modifier = Modifier
+            Modifier
                 .fillMaxWidth()
-                .padding(start = 2.dp, bottom = 4.dp)
+                .padding(8.dp)
         ) {
-            if (message.isNullOrBlank()) {
-                // Display fallback message when the response is null or empty
-                TypewriterText(
-                    fullText = fallbackMessage,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                    color = Color.White,
-                    onComplete = { isMessageComplete = true } // Mark as complete
-                )
+            if (isLoader) {
+                // partial text
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(safeMessage, color = Color.White, style = MaterialTheme.typography.body1)
+                }
             } else {
-                // Row for the speaker toggle and copy button
+                // final chunk
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End // Align buttons to the end (right)
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Speaker Button with Icon, Background, and Text
                     Row(
                         modifier = Modifier
-                            .background(
-                                Color(0xFF20FFFFFF),
-                                shape = RoundedCornerShape(8.dp)
-                            ) // Background with rounded corners
-                            .padding(horizontal = 16.dp, vertical = 8.dp) // Padding for the button
+                            .background(Color(0xFF20FFFFFF), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                             .clickable {
                                 isSpeakerOn = !isSpeakerOn
                                 if (isSpeakerOn) {
-                                    // Start TTS with the response
-                                    tts?.speak(message, TextToSpeech.QUEUE_FLUSH, null, null)
+                                    localTTS?.speak(
+                                        safeMessage,
+                                        TextToSpeech.QUEUE_FLUSH,
+                                        null,
+                                        null
+                                    )
                                 } else {
-                                    // Stop TTS
-                                    tts?.stop()
+                                    localTTS?.stop()
                                 }
                             },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = if (isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                            contentDescription = if (isSpeakerOn) "Speaker On" else "Speaker Off",
+                            imageVector = if (isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp
+                            else Icons.AutoMirrored.Filled.VolumeOff,
+                            contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Listen",
-                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                            "Listen",
+                            style = MaterialTheme.typography.body2.copy(color = Color.White),
                             fontSize = 14.sp
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(16.dp)) // Space between buttons
+                    Spacer(modifier = Modifier.width(16.dp))
 
-                    // Copy Button with Icon, Background, and Text
                     Row(
                         modifier = Modifier
-                            .background(
-                                Color(0xFF20FFFFFF),
-                                shape = RoundedCornerShape(8.dp)
-                            ) // Background with rounded corners
-                            .padding(horizontal = 16.dp, vertical = 8.dp) // Padding for the button
+                            .background(Color(0xFF20FFFFFF), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                             .clickable {
-                                // Copy the message to clipboard
-                                val clipboard =
-                                    ContextCompat.getSystemService(
-                                        context,
-                                        ClipboardManager::class.java
-                                    )
-                                val clip = ClipData.newPlainText("AI Response", message)
+                                val clipboard = ContextCompat.getSystemService(
+                                    context,
+                                    ClipboardManager::class.java
+                                )
+                                val clip = ClipData.newPlainText("AI Response", safeMessage)
                                 clipboard?.setPrimaryClip(clip)
-
-                                // Show a toast to inform the user
                                 Toast
                                     .makeText(context, "Copied to clipboard!", Toast.LENGTH_SHORT)
                                     .show()
@@ -766,14 +924,14 @@ class MainActivity : AppCompatActivity() {
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_copy_icon),
-                            contentDescription = "Copy to Clipboard",
+                            contentDescription = "Copy",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Copy",
-                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                            "Copy",
+                            style = MaterialTheme.typography.body2.copy(color = Color.White),
                             fontSize = 14.sp
                         )
                     }
@@ -781,26 +939,24 @@ class MainActivity : AppCompatActivity() {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Typewriter effect to display the AI Response
+                // Typewriter effect or just display text
                 TypewriterText(
-                    fullText = message,
-                    modifier = Modifier.padding(bottom = 4.dp),
+                    fullText = safeMessage,
                     color = Color.White,
-                    onComplete = { isMessageComplete = true } // Mark as complete
+                    onComplete = { isMessageComplete = true }
                 )
-            }
 
-            // Display navigation cards only if the message is complete
-            if (isMessageComplete && !navigations.isNullOrEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(navigations) { navigation ->
-                        NavigationCard(navigation = navigation, onClick = {
-                            onNavigationClick(navigation)
-                        })
+                if (isMessageComplete && !navigations.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(navigations) { nav ->
+                            NavigationCard(navigation = nav) {
+                                onNavigationClick(nav)
+                            }
+                        }
                     }
                 }
             }
@@ -812,18 +968,16 @@ class MainActivity : AppCompatActivity() {
         Card(
             modifier = Modifier
                 .width(220.dp)
-                .fillMaxHeight() // Ensure the card height adapts to its content
+                .fillMaxHeight()
                 .clickable { onClick() },
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF20FFFFFF)) // Purple background color
+            shape = RoundedCornerShape(12.dp),
+            elevation = 0.dp,
+            backgroundColor = Color(0xFF20FFFFFF)
         ) {
             Column(
-                modifier = Modifier
-                    .padding(16.dp),
+                modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Title
                 Text(
                     text = navigation.title,
                     style = TextStyle(
@@ -832,94 +986,26 @@ class MainActivity : AppCompatActivity() {
                         fontWeight = FontWeight.Bold
                     )
                 )
-
                 Spacer(modifier = Modifier.height(6.dp))
-
-                // Description
                 Text(
                     text = navigation.description,
                     style = TextStyle(
-                        color = Color(0xFFCCCCCC), // Light gray text
+                        color = Color(0xFFCCCCCC),
                         fontSize = 14.sp,
                         lineHeight = 20.sp
                     ),
-                    maxLines = 3,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    maxLines = 3
                 )
-
                 Spacer(modifier = Modifier.height(6.dp))
-
-                // Action Icon (Bottom Right)
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.BottomEnd
-                ) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomEnd) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_navigation_arrow_icon), // Replace with your arrow icon
+                        painter = painterResource(id = R.drawable.ic_navigation_icon),
                         contentDescription = "Navigate",
-                        tint = Color(0xFFFFFFFF), // White color for the icon
+                        tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                 }
             }
-        }
-    }
-
-    @Composable
-    fun getIconResource(iconName: String): Int {
-        return when (iconName) {
-            "moon_icon.png" -> R.drawable.search_star_icon
-            "mars_icon.png" -> R.drawable.search_star_icon
-            "jupiter_icon.png" -> R.drawable.search_star_icon
-            else -> R.drawable.search_star_icon
-        }
-    }
-
-    @Composable
-    fun LoaderMessageBox(loaderMessage: String) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-                .background(Color.LightGray, RoundedCornerShape(8.dp))
-                .padding(12.dp)
-        ) {
-            Text(text = loaderMessage, color = Color.Black)
-        }
-    }
-
-    @Composable
-    fun RecentSearchItem(recentSearch: String) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    // Optional: Handle click on recent search (e.g., perform the search again)
-                    // For example:
-                    chatViewModel.sendMessage(recentSearch)
-                    // isExpanded.value = true // Ensure UI is expanded
-                }
-                .padding(vertical = 4.dp)
-        ) {
-            // Recent Search Icon (Replace with your desired icon)
-            Icon(
-                imageVector = Icons.Default.Restore, // Using the Search icon as an example
-                contentDescription = "Recent Search Icon",
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Recent Search Text
-            Text(
-                text = recentSearch,
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 14.sp
-                )
-            )
         }
     }
 }
