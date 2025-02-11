@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.aichat.model.ChatMessage
 import com.example.aichat.network.models.Profile
+import com.example.aichat.network.models.TrendingQueryCategory
 import com.example.aichat.repository.ChatRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,14 +18,6 @@ import kotlinx.coroutines.launch
 class ChatViewModel : ViewModel() {
 
     private val chatRepository = ChatRepository()
-
-    private val INITIAL_SUGGESTIONS = listOf(
-        "View my Kundli-based predictions",
-        "Get daily insights from my birth chart",
-        "When is the next full moon?",
-        "Explore zodiac compatibility",
-        "Generate a new Kundli"
-    )
 
     // == StateFlows ==
 
@@ -37,23 +30,30 @@ class ChatViewModel : ViewModel() {
     private val _recentSearches = MutableStateFlow<List<String>>(emptyList())
     val recentSearches: StateFlow<List<String>> = _recentSearches.asStateFlow()
 
+    private val _suggestions = MutableStateFlow<List<TrendingQueryCategory>>(emptyList())
+    val suggestions: StateFlow<List<TrendingQueryCategory>> = _suggestions.asStateFlow()
+
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _isRecording = MutableStateFlow(false)
     val isRecording: StateFlow<Boolean> = _isRecording.asStateFlow()
 
-    private val _suggestions = MutableStateFlow(INITIAL_SUGGESTIONS)
-    val suggestions: StateFlow<List<String>> = _suggestions.asStateFlow()
-
-    // If suggestions are empty, we hide recent searches.
+    // If suggestions are empty, we hide recent searches in the UI
     private val _showRecentSearches = MutableStateFlow(true)
     val showRecentSearches: StateFlow<Boolean> = _showRecentSearches.asStateFlow()
 
-    // A special index to track the current “partial” message if any
+    // Track partial message index for streaming
     private var partialMessageIndex: Int? = null
+    private var streamingJob: Job? = null
 
-    /** Example profile for demonstration. Replace with your real logic if needed. **/
+    init {
+        // Immediately load suggestions (trending) and recent searches from the server
+        loadSuggestionsAndRecentSearches()
+    }
+
+    /** Example profile data, adjust as needed. */
     private fun getCurrentUserProfile(): Profile {
         return Profile(
             name = "Alok Prasad",
@@ -72,7 +72,42 @@ class ChatViewModel : ViewModel() {
         )
     }
 
-    // == Public Methods ==
+    // =========================
+    // Public / UI-facing methods
+    // =========================
+
+    /**
+     * Loads trending suggestions and recent searches from the server.
+     */
+    fun loadSuggestionsAndRecentSearches() {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+
+                // Fetch trending queries => suggestions
+                val trendingList = chatRepository.fetchTrendingQueries()
+                Log.d("ChatViewModel", "Trending Suggestions: $trendingList")
+
+                // Set the fetched trending list directly to suggestions
+                _suggestions.value = trendingList
+
+                // Fetch recent queries => recentSearches
+                val recentList = chatRepository.fetchRecentQueries()
+                Log.d("ChatViewModel", "Recent Searches: $recentList")
+                _recentSearches.value = recentList
+
+                // If suggestions are empty, hide recent searches
+                _showRecentSearches.value = trendingList.isNotEmpty()
+
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Error loading suggestions: ${e.message}", e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+
 
     fun setRecording(value: Boolean) {
         _isRecording.value = value
@@ -93,23 +128,26 @@ class ChatViewModel : ViewModel() {
         )
     }
 
-    private var streamingJob: Job? = null
-
+    /**
+     * Send a message to the backend, collect the SSE streaming response.
+     */
     fun sendMessage(userMessage: String) {
         if (userMessage.isBlank()) return
 
-        // Cancel any previous job if you only want one active at a time
+        // Cancel any previous streaming if it’s still running
         streamingJob?.cancel()
 
+        // 1) Add the user’s message to our chat flow
         val userChat = ChatMessage(isUser = true, userMessage = userMessage, botResponse = "")
         _chatMessages.value += userChat
 
+        // 2) Clear suggestions from UI while conversation is happening
         clearSuggestions()
+
+        // 3) Update local "recentSearches" (top of the list)
         updateRecentSearches(userMessage)
 
-        val currentProfile = getCurrentUserProfile()
-
-        // Insert placeholder bubble
+        // 4) Insert a placeholder bubble for AI response
         val placeholder = ChatMessage(
             isUser = false,
             botResponse = "Waiting for AI response...",
@@ -118,13 +156,17 @@ class ChatViewModel : ViewModel() {
         partialMessageIndex = _chatMessages.value.size
         _chatMessages.value += placeholder
 
-        // **Launch a new streamingJob**
+        val profile = getCurrentUserProfile()
+
+        // 5) Start streaming from the repository
         streamingJob = viewModelScope.launch {
-            chatRepository.getBotResponseStream(userMessage, currentProfile)
+            chatRepository.getBotResponseStream(userMessage, profile)
                 .collect { incoming ->
                     if (partialMessageIndex == null) {
+                        // If partialMessageIndex got reset, just append
                         _chatMessages.value += incoming
                     } else {
+                        // Update or replace the placeholder bubble
                         if (incoming.isLoader) {
                             updatePartialBubble(incoming.botResponse ?: "Loading...")
                         } else {
@@ -135,53 +177,26 @@ class ChatViewModel : ViewModel() {
         }
     }
 
-
-    /** Replace partial bubble text (still isLoader=true). **/
-    private fun updatePartialBubble(newText: String) {
-        partialMessageIndex?.let { index ->
-            val currentList = _chatMessages.value.toMutableList()
-            val old = currentList[index]
-            // Update the text, keep isLoader = true
-            val updated = old.copy(botResponse = newText, isLoader = true)
-            currentList[index] = updated
-            _chatMessages.value = currentList
-        }
-    }
-
-    /** Replace the partial bubble with the final chunk (isLoader=false). **/
-    private fun replacePartialBubbleWithFinal(finalMessage: ChatMessage) {
-        partialMessageIndex?.let { index ->
-            val currentList = _chatMessages.value.toMutableList()
-            // Overwrite the partial bubble with final data
-            currentList[index] = ChatMessage(
-                isUser = false,
-                botResponse = finalMessage.botResponse,
-                navigations = finalMessage.navigations,
-                isLoader = false
-            )
-            _chatMessages.value = currentList
-        }
-        // Clear partial index once final arrived
-        partialMessageIndex = null
-    }
-
-    /** Clears all messages. **/
+    /**
+     * Clears all messages in the chat. Show suggestions/recent again if needed.
+     */
     fun clearMessages() {
         _chatMessages.value = emptyList()
         showRecentSearches()
         partialMessageIndex = null
     }
 
-    fun resetSuggestions() {
-        _suggestions.value = INITIAL_SUGGESTIONS
-        showRecentSearches()
-    }
-
+    /**
+     * Clears the suggestions from the UI.
+     */
     fun clearSuggestions() {
         _suggestions.value = emptyList()
         hideRecentSearches()
     }
 
+    /**
+     * If you need to clear the local recent searches list. (Does not call an API.)
+     */
     fun clearRecentSearches() {
         _recentSearches.value = emptyList()
     }
@@ -190,24 +205,64 @@ class ChatViewModel : ViewModel() {
         _isLoading.value = value
     }
 
-    // == Helpers ==
+    /**
+     * Cancel SSE streaming if needed.
+     */
+    fun cancelStreaming() {
+        streamingJob?.cancel()
+        streamingJob = null
+        partialMessageIndex = null
+    }
 
+    // =========================
+    // Private helpers
+    // =========================
+
+    /**
+     * Update the partial bubble text while still streaming.
+     */
+    private fun updatePartialBubble(newText: String) {
+        partialMessageIndex?.let { index ->
+            val currentList = _chatMessages.value.toMutableList()
+            val old = currentList[index]
+            val updated = old.copy(botResponse = newText, isLoader = true)
+            currentList[index] = updated
+            _chatMessages.value = currentList
+        }
+    }
+
+    /**
+     * Once the final chunk arrives from SSE (isLoader = false), replace
+     * the placeholder bubble with the final text and navigations.
+     */
+    private fun replacePartialBubbleWithFinal(finalMessage: ChatMessage) {
+        partialMessageIndex?.let { index ->
+            val currentList = _chatMessages.value.toMutableList()
+            currentList[index] = ChatMessage(
+                isUser = false,
+                botResponse = finalMessage.botResponse,
+                navigations = finalMessage.navigations,
+                isLoader = false
+            )
+            _chatMessages.value = currentList
+        }
+        partialMessageIndex = null
+    }
+
+    /**
+     * Adds a new search to the top of recent searches in local memory.
+     * Removes duplicates and only keeps up to 4 in this example.
+     */
     private fun updateRecentSearches(newSearch: String) {
         val list = _recentSearches.value.toMutableList()
         // Remove if it already exists
         list.remove(newSearch)
         // Insert at top
         list.add(0, newSearch)
-        // Keep only last 4
+        // Keep only last 4 (optional limit)
         if (list.size > 4) {
             list.removeAt(list.size - 1)
         }
         _recentSearches.value = list
-    }
-
-    fun cancelStreaming() {
-        streamingJob?.cancel()
-        streamingJob = null
-        partialMessageIndex = null
     }
 }

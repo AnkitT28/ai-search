@@ -38,6 +38,9 @@ android {
     buildFeatures {
         compose = true
     }
+    buildFeatures {
+        viewBinding = true
+    }
 }
 
 dependencies {
@@ -72,6 +75,9 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
 
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.material)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.constraintlayout)
 
     // Testing dependencies
     testImplementation(libs.junit)
@@ -88,7 +94,6 @@ dependencies {
 
     implementation(libs.logging.interceptor)
     implementation(libs.okhttp.sse)
-
 
 
     // Gson

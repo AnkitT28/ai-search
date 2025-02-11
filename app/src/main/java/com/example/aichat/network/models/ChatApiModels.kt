@@ -50,6 +50,7 @@ data class TrendingQueriesResponse(
     val data: TrendingQueriesData
 )
 
+
 data class TrendingQueriesData(
     val queries: List<TrendingQueryCategory>
 )

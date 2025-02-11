@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1f002b">
+
+    <!-- Search Bar -->
+    <LinearLayout
+        android:id="@+id/searchBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/dimen_16dp"
+        android:layout_marginTop="@dimen/dimen_28dp"
+        android:layout_marginEnd="@dimen/dimen_16dp"
+        android:background="@drawable/background_curv"
+        android:backgroundTint="#20ffffff"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/starIcon"
+            android:layout_width="@dimen/dimen_32dp"
+            android:layout_height="@dimen/dimen_32dp"
+            android:contentDescription="Voice Input or Cancel"
+            android:src="@drawable/search_star_icon" />
+
+        <EditText
+            android:id="@+id/searchEditText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/dimen_4dp"
+            android:layout_weight="1"
+            android:background="@null"
+            android:hint="Ask the universe..."
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:textColor="@color/white"
+            android:textColorHint="#f2f2f2"
+            android:textSize="@dimen/dimen_16sp" />
+
+        <!-- This button shows either the mic or cancel icon -->
+        <ImageView
+            android:id="@+id/micCancelButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@null"
+            android:contentDescription="Voice Input or Cancel"
+            android:src="@drawable/ic_mic"
+            app:tint="@color/white" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/searchBar">
+
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+
+            <LinearLayout
+                android:id="@+id/rootLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/dimen_14dp"
+                android:paddingEnd="@dimen/dimen_14dp"
+                android:paddingBottom="@dimen/dimen_16dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+
+                <!-- Suggestions List -->
+                <LinearLayout
+                    android:id="@+id/suggestionsLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical" />
+
+                <!-- Recent Searches List -->
+
+                <TextView
+                    android:id="@+id/recentSearchesHeader"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/dimen_7dp"
+                    android:layout_marginTop="@dimen/dimen_12dp"
+                    android:paddingStart="@dimen/dimen_5dp"
+                    android:paddingTop="@dimen/dimen_4dp"
+                    android:paddingEnd="@dimen/dimen_4dp"
+                    android:text="Recent Searches"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/dimen_16sp"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/recentSearchesLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <!-- Action Buttons (Listen and Copy) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/actionButtonsLayout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/listenButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/dimen_16dp"
+                        android:background="@drawable/background_curv"
+                        android:backgroundTint="#20ffffff"
+                        android:drawableStart="@drawable/ic_volume_icon"
+                        android:drawablePadding="@dimen/dimen_6dp"
+                        android:padding="@dimen/dimen_10dp"
+                        android:text="Listen"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/dimen_12sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toStartOf="@id/copyButton"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/copyButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:background="@drawable/background_curv"
+                        android:backgroundTint="#20ffffff"
+                        android:drawableStart="@drawable/ic_copy_default"
+                        android:drawablePadding="@dimen/dimen_6dp"
+                        android:padding="@dimen/dimen_10dp"
+                        android:text="Copy"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/dimen_12sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintEnd_toStartOf="@+id/listenButton"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+                <!-- Loader / Response Area -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/responseContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal">
+
+                    <!-- Loader progress bar (hidden when response is complete) -->
+                    <ProgressBar
+                        android:id="@+id/loaderProgressBar"
+                        android:layout_width="@dimen/dimen_28dp"
+                        android:layout_height="@dimen/dimen_28dp"
+                        android:paddingTop="@dimen/dimen_12dp"
+                        android:visibility="gone"
+                        app:layout_constraintBottom_toBottomOf="@id/responseTextView"
+                        app:layout_constraintEnd_toStartOf="@id/responseTextView"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/responseTextView" />
+
+                    <!-- Response TextView -->
+                    <TextView
+                        android:id="@+id/responseTextView"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/dimen_6dp"
+                        android:lineSpacingExtra="@dimen/dimen_6dp"
+                        android:paddingTop="8dp"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/loaderProgressBar"
+                        app:layout_constraintTop_toTopOf="@id/loaderProgressBar" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </LinearLayout>
+
+            <HorizontalScrollView
+                android:id="@+id/navigationCardsScrollView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fillViewport="true"
+                android:scrollbars="none"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/rootLayout">
+
+                <LinearLayout
+                    android:id="@+id/navigationCardsLayout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:visibility="gone" />
+            </HorizontalScrollView>
+
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.core.widget.NestedScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

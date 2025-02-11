@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Ai Chat</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="listen">Listen</string>
+    <string name="waiting_for_ai_response">Waiting for AI response...</string>
+    <string name="stop">Stop</string>
+    <string name="copy">Copy</string>
+    <string name="copied">Copied</string>
 </resources>

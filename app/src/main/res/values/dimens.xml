@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="padding_12dp">12dp</dimen>
+    <dimen name="margin_12dp">12dp</dimen>
+    <dimen name="padding_4dp">4dp</dimen>
+    <dimen name="padding_6dp">6dp</dimen>
+    <dimen name="padding_7dp">7dp</dimen>
+    <dimen name="padding_22dp">22dp</dimen>
+    <dimen name="padding_15dp">15dp</dimen>
+    <dimen name="padding_10dp">10dp</dimen>
+    <dimen name="padding_20dp">20dp</dimen>
+    <dimen name="padding_8dp">8dp</dimen>
+    <dimen name="padding_16dp">16dp</dimen>
+    <dimen name="padding_30dp">30dp</dimen>
+    <dimen name="padding_2dp">2dp</dimen>
+    <dimen name="dimen_70dp">70dp</dimen>
+    <dimen name="dimen_74dp">74dp</dimen>
+    <dimen name="dimen_78dp">78dp</dimen>
+    <dimen name="dimen_68dp">68dp</dimen>
+    <dimen name="dimen_64dp">64dp</dimen>
+    <dimen name="dimen_58dp">58dp</dimen>
+    <dimen name="dimen_48dp">48dp</dimen>
+    <dimen name="dimen_86dp">86dp</dimen>
+    <dimen name="dimen_186dp">186dp</dimen>
+    <dimen name="dimen_286dp">286dp</dimen>
+    <dimen name="dimen_226dp">226dp</dimen>
+    <dimen name="dimen_246dp">246dp</dimen>
+    <dimen name="dimen_486dp">486dp</dimen>
+    <dimen name="dimen_minimum_98">98dp</dimen>
+    <dimen name="marin_24dp">24dp</dimen>
+    <dimen name="card_height_para">186dp</dimen>
+    <dimen name="padding_40dp">40dp</dimen>
+    <dimen name="padding_14dp">14dp</dimen>
+    <dimen name="taro_item_width">500dp</dimen>
+    <dimen name="profile_bottom_sheet_height">580dp</dimen>
+    <dimen name="item_margin">16dp</dimen>
+    <dimen name="fab_margin">16dp</dimen>
+    <dimen name="margin_16" />
+    <dimen name="marginTop_20">20dp</dimen>
+    <dimen name="dimen_cut_off_image_height">50dp</dimen>
+
+
+    <color name="active_state_submit_button">#002E6E</color>
+    <color name="back_net_banking">#f3f7f8</color>
+    <!--    <color name="black">#000000</color>-->
+    <color name="black_222222">#222222</color>
+    <color name="blue_00ade6">#00ade6</color>
+    <color name="bright_sky_color">#00b9f5</color>
+    <color name="color_00b9f5">#00baf2</color>
+    <color name="dummy">#00000000</color>
+    <color name="gray_444444">#444444</color>
+    <color name="gray_666666">#666666</color>
+    <color name="gray_686868">#686868</color>
+    <color name="gray_8ba6c1">#8ba6c1</color>
+    <color name="inActive_state_submit_button">#9B9B9B</color>
+    <color name="light_gray_a9a9a9">#a9a9a9</color>
+    <color name="none">#00000000</color>
+    <color name="paytm_blue">#00baf2</color>
+    <color name="paytm_dark_blue">#012b72</color>
+    <color name="submit_easy_pay">#00b9f5</color>
+    <color name="theme_color_dark">#002e6e</color>
+    <!--    <color name="white">#FFFFFF</color>-->
+    <color name="white_b8c2cb">#b8c2cb</color>
+    <color name="white_eceff1">#eceff1</color>
+    <color name="white_smoke">#F5F5F5</color>
+    <dimen name="dimen_0dp">0dp</dimen>
+    <dimen name="dimen_10dp">10dp</dimen>
+    <dimen name="dimen_12dp">12dp</dimen>
+    <dimen name="dimen_12sp">12sp</dimen>
+    <dimen name="dimen_13sp">13sp</dimen>
+    <dimen name="dimen_13dot7sp">13.7sp</dimen>
+    <dimen name="dimen_14dp">14dp</dimen>
+    <dimen name="dimen_15dp">15dp</dimen>
+    <dimen name="dimen_15sp">15sp</dimen>
+    <dimen name="dimen_16dp">16dp</dimen>
+    <dimen name="dimen_16sp">16sp</dimen>
+    <dimen name="dimen_14sp">14sp</dimen>
+    <dimen name="dimen_17sp">17dp</dimen>
+    <dimen name="dimen_18dp">18dp</dimen>
+    <dimen name="dimen_18sp">18sp</dimen>
+    <dimen name="dimen_1dp">1dp</dimen>
+    <dimen name="dimen_20dp">20dp</dimen>
+    <dimen name="dimen_20sp">20dp</dimen>
+    <dimen name="dimen_22dp">22dp</dimen>
+    <dimen name="dimen_22sp">22sp</dimen>
+    <dimen name="dimen_28sp">28sp</dimen>
+    <dimen name="dimen_23dp">23dp</dimen>
+    <dimen name="dimen_24dp">24dp</dimen>
+    <dimen name="dimen_28dp">28dp</dimen>
+    <dimen name="dimen_2dot2sp">2.2sp</dimen>
+    <dimen name="dimen_32dp">32dp</dimen>
+    <dimen name="dimen_35dp">35dp</dimen>
+    <dimen name="dimen_36dp">36dp</dimen>
+    <dimen name="dimen_38dp">38dp</dimen>
+    <dimen name="dimen_3dp">3dp</dimen>
+    <dimen name="dimen_2dp">2dp</dimen>
+    <dimen name="dimen_4dp">4dp</dimen>
+    <dimen name="dimen_5dp">5dp</dimen>
+    <dimen name="dimen_4sp">4sp</dimen>
+    <dimen name="dimen_50dp">50dp</dimen>
+    <dimen name="dimen_60dp">60dp</dimen>
+    <dimen name="dimen_6dp">6dp</dimen>
+    <dimen name="dimen_6sp">6sp</dimen>
+    <dimen name="dimen_7dp">7dp</dimen>
+    <dimen name="dimen_8dp">8dp</dimen>
+    <dimen name="dimen_93dp">93dp</dimen>
+    <dimen name="dimen_96dp">96dp</dimen>
+    <dimen name="dimen_105dp">50dp</dimen>
+    <dimen name="dimen_neg_16dp">-16dp</dimen>
+    <dimen name="dummy">22sp</dimen>
+    <!--    <string name="app_name">Easypay</string>-->
+    <dimen name="paregraph_16sp">16sp</dimen>
+    <!--    <string name="app_name">Easypay</string>-->
+    <dimen name="paragraph_16sp">16sp</dimen>
+    <dimen name="side_heading">16sp</dimen>
+    <dimen name="heading_18sp">18sp</dimen>
+    <dimen name="component_heading">20sp</dimen>
+    <dimen name="line_spacing">6dp</dimen>
+
+    <dimen name="heading">24sp</dimen>
+
+
+    <style name="AppBaseTheme" parent="android:Theme.Light">
+        <!--
+            Theme customizations available in newer API levels can go in
+            res/values-vXX/styles.xml, while customizations related to
+            backward-compatibility can go here.
+        -->
+    </style>
+    <!--    <style name="AppTheme" parent="AppBaseTheme">-->
+    <!--        &lt;!&ndash; All customizations that are NOT specific to a particular API-level can go here. &ndash;&gt;-->
+    <!--    </style>-->
+    <style name="BlueButton">
+        <item name="android:textStyle">normal</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textSize">15dp</item>
+        <item name="android:background">#002E6E</item>
+    </style>
+
+    <style name="GreyButton">
+        <item name="android:textStyle">normal</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textSize">15dp</item>
+        <item name="android:background">#9B9B9B</item>
+    </style>
+
+    <style name="ProgressBarTheme" parent="ThemeOverlay.AppCompat.Light">
+        <item name="colorAccent">@color/color_00b9f5</item>
+
+    </style>
+
+    <style name="TransparentProgressDialog" parent="@android:style/Theme.Dialog">
+        <item name="android:windowFrame">@null</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowTitleStyle">@null</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+        <item name="android:windowSoftInputMode">stateUnspecified|adjustPan</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
+    <declare-styleable name="OtpEditText">
+        <attr name="otpInputAnimStyle" format="enum">
+            <enum name="popIn" value="0" />
+            <enum name="fromBottom" value="1" />
+            <enum name="none" value="-1" />
+        </attr>
+        <attr name="otpErrorAnimStyle" format="enum">
+            <enum name="shake" value="0" />
+            <enum name="bounce" value="1" />
+            <enum name="none" value="-1" />
+        </attr>
+        <attr name="otpStrokeLineHeight" format="dimension" />
+        <attr name="otpStrokeLineSelectedHeight" format="dimension" />
+        <attr name="otpCharacterSpacing" format="dimension" />
+        <attr name="otpTextBottomLinePadding" format="dimension" />
+        <attr name="otpBackgroundDrawable" format="reference" />
+        <attr name="otpBackgroundIsSquare" format="boolean" />
+        <attr name="otpErrorTextColor" format="color" />
+        <attr name="otpLineUnFocusedColor" format="color" />
+        <attr name="otpLineFocusedColor" format="color" />
+        <attr name="otpLineNextCharColor" format="color" />
+        <attr name="otpLineErrorColor" format="color" />
+
+    </declare-styleable>
+    <declare-styleable name="RoboTextView">
+        <attr name="fontType">
+            <enum name="robotoLight" value="1" />
+            <enum name="robotoRegular" value="2" />
+            <enum name="robotoMedium" value="3" />
+            <enum name="robotoBold" value="4" />
+            <enum name="robotoItalic" value="5" />
+
+        </attr>
+    </declare-styleable>
+
+</resources>

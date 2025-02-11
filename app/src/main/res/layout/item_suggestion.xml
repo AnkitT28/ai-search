@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="4dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginEnd="4dp"
+    android:background="@drawable/background_curv"
+    card_view:cardBackgroundColor="#20ffffff"
+    card_view:cardCornerRadius="8dp"
+    card_view:cardElevation="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="4dp">
+
+        <TextView
+            android:id="@+id/suggestionTextView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/dimen_4dp"
+            android:layout_marginBottom="@dimen/dimen_1dp"
+            android:layout_weight="1"
+            android:lineSpacingExtra="@dimen/dimen_6dp"
+            android:padding="@dimen/dimen_4dp"
+            android:text="Suggestion"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
+
+        <ImageView
+            android:id="@+id/arrowImageView"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="@dimen/dimen_4dp"
+            android:padding="@dimen/dimen_2dp"
+            android:rotation="324"
+            android:src="@drawable/ic_arrow" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

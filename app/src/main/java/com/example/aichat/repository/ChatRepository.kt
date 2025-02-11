@@ -7,6 +7,9 @@ import com.example.aichat.network.RetrofitInstance
 import com.example.aichat.network.models.ChatRequest
 import com.example.aichat.network.models.Profile
 import com.example.aichat.network.models.StreamResponse
+import com.example.aichat.network.models.TrendingQueriesResponse
+import com.example.aichat.network.models.RecentQueriesResponse
+import com.example.aichat.network.models.TrendingQueryCategory
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +24,36 @@ class ChatRepository {
     private val api: ChatApiService = RetrofitInstance.api
     private val gson = Gson()
 
+    suspend fun fetchTrendingQueries(): List<TrendingQueryCategory> {
+        return try {
+            val response: TrendingQueriesResponse = api.getTrendingQueries()
+            Log.d("LOG_SUGGESTIONS", "fetchTrendingQueries: Response: ${response.data.queries}")
+
+            // Return the entire list of TrendingQueryCategory
+            response.data.queries
+        } catch (e: Exception) {
+            Log.e("ChatRepository", "Error fetching trending queries: ${e.message}", e)
+            emptyList() // Fallback to empty list on error
+        }
+    }
+
+
+    suspend fun fetchRecentQueries(): List<String> {
+        return try {
+            val response: RecentQueriesResponse = api.getRecentQueries()
+            Log.d("RecentQueriesResponse_LOG", "Response: ${response.data.queries}")
+
+            response.data.queries
+
+        } catch (e: Exception) {
+            Log.e("ChatRepository", "Error fetching recent queries: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * SSE/streaming method to get AI responses.
+     */
     fun getBotResponseStream(userMessage: String, profile: Profile): Flow<ChatMessage> = flow {
         try {
             val request = ChatRequest(
@@ -50,17 +83,12 @@ class ChatRepository {
                             val isComplete = streamResponse.is_complete
                             val data = streamResponse.data
 
-                            val partialMessage = data.message               // If is_complete=false
+                            val partialMessage = data.message
                             val finalText = data.search_result ?: data.message
                             val navigations = data.navigations
 
-                            Log.d(
-                                "ChatRepository",
-                                "Parsed: message=$partialMessage, isComplete=$isComplete"
-                            )
-
                             if (!isComplete) {
-                                // Emit partial text (loader=true)
+                                // Emit partial text (isLoader = true)
                                 emit(
                                     ChatMessage(
                                         isUser = false,
@@ -70,7 +98,7 @@ class ChatRepository {
                                     )
                                 )
                             } else {
-                                // Emit final text (loader=false)
+                                // Emit final text (isLoader = false)
                                 emit(
                                     ChatMessage(
                                         isUser = false,
