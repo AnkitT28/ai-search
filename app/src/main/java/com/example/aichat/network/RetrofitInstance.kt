@@ -1,14 +1,12 @@
 package com.example.aichat.network
 
-import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.util.concurrent.TimeUnit
+
 
 object RetrofitInstance {
     private const val BASE_URL =
-        "https://app-services-dev.vedicrishi.in/ai-search-service/" // Update with the correct base URL
-//        "https://app-services-dev.vedicrishi.in/ai-search-service/search/" // Update with the correct base URL
+        "https://app-services-dev.vedicrishi.in/ai-search-service/"
 
     // Use the OkHttpClient from NetworkInterceptor
     private val client = NetworkInterceptor.getClient()

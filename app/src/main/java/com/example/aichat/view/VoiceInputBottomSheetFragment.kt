@@ -137,11 +137,14 @@ class VoiceInputBottomSheetFragment : BottomSheetDialogFragment(), RecognitionLi
         inactivityRunnable?.let { handler.removeCallbacks(it) }
         inactivityRunnable = null
 
-        // Show mic button again, hide visualizer
-        binding.visualizerContainer.visibility = View.GONE
-        binding.buttonStartStop.visibility = View.VISIBLE
-        binding.buttonStartStop.setImageResource(R.drawable.ic_mic)
-        stopBarAnimations()
+        // Check if binding is available
+        binding.apply {
+            // Show mic button again, hide visualizer
+            visualizerContainer.visibility = View.GONE
+            buttonStartStop.visibility = View.VISIBLE
+            buttonStartStop.setImageResource(R.drawable.ic_mic)
+            stopBarAnimations()
+        }
     }
 
     private fun startBarAnimations() {

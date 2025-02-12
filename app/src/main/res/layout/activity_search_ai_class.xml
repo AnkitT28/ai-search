@@ -14,10 +14,12 @@
         android:layout_marginTop="@dimen/dimen_28dp"
         android:layout_marginEnd="@dimen/dimen_16dp"
         android:background="@drawable/background_curv"
-        android:backgroundTint="#20ffffff"
+        android:backgroundTint="#3A2044"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="12dp"
+        android:paddingTop="@dimen/dimen_12dp"
+        android:paddingBottom="@dimen/dimen_12dp"
+        android:transitionName="searchBoxAnim"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -26,6 +28,7 @@
             android:id="@+id/starIcon"
             android:layout_width="@dimen/dimen_32dp"
             android:layout_height="@dimen/dimen_32dp"
+            android:layout_marginStart="@dimen/dimen_12dp"
             android:contentDescription="Voice Input or Cancel"
             android:src="@drawable/search_star_icon" />
 
@@ -39,6 +42,8 @@
             android:hint="Ask the universe..."
             android:imeOptions="actionSearch"
             android:inputType="text"
+            android:paddingTop="@dimen/dimen_4dp"
+            android:paddingBottom="@dimen/dimen_4dp"
             android:textColor="@color/white"
             android:textColorHint="#f2f2f2"
             android:textSize="@dimen/dimen_16sp" />
@@ -48,8 +53,13 @@
             android:id="@+id/micCancelButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/dimen_4dp"
             android:background="@null"
             android:contentDescription="Voice Input or Cancel"
+            android:paddingStart="@dimen/dimen_12dp"
+            android:paddingTop="@dimen/dimen_6dp"
+            android:paddingEnd="@dimen/dimen_12dp"
+            android:paddingBottom="@dimen/dimen_6dp"
             android:src="@drawable/ic_mic"
             app:tint="@color/white" />
     </LinearLayout>

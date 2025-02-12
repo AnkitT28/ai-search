@@ -12,8 +12,9 @@ import retrofit2.http.Streaming
 
 interface ChatApiService {
     @Streaming
-    @POST("search/mock") // Replace with your actual endpoint
+    @POST("search/mock")
     suspend fun getAiResponse(@Body request: ChatRequest): ResponseBody
+
 
 
     @GET("queries/trending")

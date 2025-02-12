@@ -6,9 +6,9 @@ import com.example.aichat.network.ChatApiService
 import com.example.aichat.network.RetrofitInstance
 import com.example.aichat.network.models.ChatRequest
 import com.example.aichat.network.models.Profile
+import com.example.aichat.network.models.RecentQueriesResponse
 import com.example.aichat.network.models.StreamResponse
 import com.example.aichat.network.models.TrendingQueriesResponse
-import com.example.aichat.network.models.RecentQueriesResponse
 import com.example.aichat.network.models.TrendingQueryCategory
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
@@ -17,8 +17,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import okhttp3.ResponseBody
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import okio.BufferedSource
+import okio.Okio
+import okio.buffer
+import okio.source
 
 class ChatRepository {
     private val api: ChatApiService = RetrofitInstance.api
@@ -27,24 +29,17 @@ class ChatRepository {
     suspend fun fetchTrendingQueries(): List<TrendingQueryCategory> {
         return try {
             val response: TrendingQueriesResponse = api.getTrendingQueries()
-            Log.d("LOG_SUGGESTIONS", "fetchTrendingQueries: Response: ${response.data.queries}")
-
-            // Return the entire list of TrendingQueryCategory
             response.data.queries
         } catch (e: Exception) {
             Log.e("ChatRepository", "Error fetching trending queries: ${e.message}", e)
-            emptyList() // Fallback to empty list on error
+            emptyList()
         }
     }
-
 
     suspend fun fetchRecentQueries(): List<String> {
         return try {
             val response: RecentQueriesResponse = api.getRecentQueries()
-            Log.d("RecentQueriesResponse_LOG", "Response: ${response.data.queries}")
-
             response.data.queries
-
         } catch (e: Exception) {
             Log.e("ChatRepository", "Error fetching recent queries: ${e.message}", e)
             emptyList()
@@ -63,20 +58,25 @@ class ChatRepository {
             )
             Log.d("API_Request", "Request JSON: ${gson.toJson(request)}")
 
+            // Make the network call
             val responseBody: ResponseBody = api.getAiResponse(request)
-            val reader = BufferedReader(InputStreamReader(responseBody.byteStream()))
+
+            // Wrap the response body source with a BufferedSource
+            val source: BufferedSource = responseBody.byteStream().source().buffer()
+
             var line: String?
             var lineNumber = 0
 
-            while (reader.readLine().also { line = it } != null) {
+            while (true) {
+                line = source.readUtf8Line()  // Blocking call until line is available
+
+                if (line == null) break  // EOF reached
+
                 lineNumber++
                 Log.d("ChatRepository", "Line $lineNumber: $line")
 
-                // Typical SSE lines start with "data:"
-                if (line != null && line!!.startsWith("data: ")) {
-                    val jsonData = line!!.removePrefix("data: ").trim()
-                    Log.d("ChatRepository", "Raw JSON data: $jsonData")
-
+                if (line.startsWith("data: ")) {
+                    val jsonData = line.removePrefix("data: ").trim()
                     if (jsonData.isNotEmpty()) {
                         try {
                             val streamResponse = gson.fromJson(jsonData, StreamResponse::class.java)
@@ -88,7 +88,7 @@ class ChatRepository {
                             val navigations = data.navigations
 
                             if (!isComplete) {
-                                // Emit partial text (isLoader = true)
+                                // Emit partial response while streaming
                                 emit(
                                     ChatMessage(
                                         isUser = false,
@@ -98,7 +98,7 @@ class ChatRepository {
                                     )
                                 )
                             } else {
-                                // Emit final text (isLoader = false)
+                                // Emit final response once completed
                                 emit(
                                     ChatMessage(
                                         isUser = false,
@@ -108,8 +108,8 @@ class ChatRepository {
                                     )
                                 )
                             }
-                        } catch (parseException: JsonSyntaxException) {
-                            Log.e("ChatRepository", "JSON Parsing Error: ${parseException.message}", parseException)
+                        } catch (e: JsonSyntaxException) {
+                            Log.e("ChatRepository", "JSON Parsing Error: ${e.message}", e)
                             emit(
                                 ChatMessage(
                                     isUser = false,
@@ -122,8 +122,10 @@ class ChatRepository {
                     }
                 }
             }
-            reader.close()
+
             Log.d("ChatRepository", "Completed reading the response stream.")
+            source.close()
+
         } catch (e: Exception) {
             Log.e("ChatRepository", "Error processing stream: ${e.message}", e)
             emit(
@@ -136,4 +138,5 @@ class ChatRepository {
             )
         }
     }.flowOn(Dispatchers.IO)
+
 }

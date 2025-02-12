@@ -8,16 +8,18 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.text.*
 import android.view.*
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import com.example.aichat.R
@@ -49,12 +51,30 @@ class SearchAiClass : AppCompatActivity(), VoiceInputBottomSheetFragment.VoiceIn
         binding = ActivitySearchAiClassBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize ViewModel
-        chatViewModel = ViewModelProvider(this)[ChatViewModel::class.java]
-
+        window.setBackgroundDrawableResource(android.R.color.transparent)
         // Set status & navigation bar colors
         window.statusBarColor = Color.parseColor("#1f002b")
         window.navigationBarColor = Color.parseColor("#1f002b")
+
+
+        // Initialize ViewModel
+        chatViewModel = ViewModelProvider(this)[ChatViewModel::class.java]
+
+
+        // Get the value passed from DashBoard activity
+        val action = intent.getStringExtra("action")
+
+        // Handle the value passed from DashBoard
+        if (action == "searchBox") {
+            // Focus on the search box and open the keyboard
+            binding.searchEditText.requestFocus()
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(binding.searchEditText, InputMethodManager.SHOW_IMPLICIT)
+        } else if (action == "mic") {
+            // Show the voice input bottom sheet
+            val bottomSheet = VoiceInputBottomSheetFragment()
+            bottomSheet.show(supportFragmentManager, "VoiceInputBottomSheet")
+        }
 
         // TTS with progress listener
         tts = TextToSpeech(this) { status ->
@@ -209,12 +229,12 @@ class SearchAiClass : AppCompatActivity(), VoiceInputBottomSheetFragment.VoiceIn
         }
 
         // Observe chat messages => animate response, show nav cards, etc.
-        chatViewModel.chatMessages.asLiveData().observe(this, Observer { messages ->
+        chatViewModel.chatMessages.asLiveData().observe(this) { messages ->
             val aiMessage = messages.lastOrNull { !it.isUser }
             binding.navigationCardsLayout.removeAllViews()
             if (aiMessage != null) {
                 if (aiMessage.isLoader) {
-                    binding.responseTextView.text = getString(R.string.waiting_for_ai_response)
+                    binding.responseTextView.text = aiMessage.botResponse
                     binding.loaderProgressBar.visibility = View.VISIBLE
                     binding.actionButtonsLayout.visibility = View.GONE
                 } else {
@@ -254,7 +274,7 @@ class SearchAiClass : AppCompatActivity(), VoiceInputBottomSheetFragment.VoiceIn
                 binding.actionButtonsLayout.visibility = View.GONE
                 binding.navigationCardsLayout.visibility = View.GONE
             }
-        })
+        }
 
         // Observe suggestions => show
         chatViewModel.suggestions.asLiveData().observe(this) { suggestions ->

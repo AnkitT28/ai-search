@@ -79,7 +79,7 @@ class ChatViewModel : ViewModel() {
     /**
      * Loads trending suggestions and recent searches from the server.
      */
-    fun loadSuggestionsAndRecentSearches() {
+    private fun loadSuggestionsAndRecentSearches() {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
@@ -166,16 +166,21 @@ class ChatViewModel : ViewModel() {
                         // If partialMessageIndex got reset, just append
                         _chatMessages.value += incoming
                     } else {
-                        // Update or replace the placeholder bubble
+                        // Check if the incoming data is partial (loader) or the final response
                         if (incoming.isLoader) {
+                            // Update with loading message or partial message
                             updatePartialBubble(incoming.botResponse ?: "Loading...")
+                            Log.d("PARTIAL_RESPONSE_LOG", "sendMessage: partialMessageIndex: $_isLoading")
+                            Log.d("PARTIAL_RESPONSE_LOG", "sendMessage: partialMessageIndex: ${incoming.isLoader}")
                         } else {
+                            // Once final message is complete, replace the placeholder
                             replacePartialBubbleWithFinal(incoming)
                         }
                     }
                 }
         }
     }
+
 
     /**
      * Clears all messages in the chat. Show suggestions/recent again if needed.
